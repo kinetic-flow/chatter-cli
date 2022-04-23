@@ -50,3 +50,12 @@ modules.order
 Module.symvers
 Mkfile.old
 dkms.conf
+
+# IDE
+.vscode
+chatter/.vscode
+chatter/.vs
+chatter/Debug
+chatter/Release
+chatter/x64
+chatter/x86
