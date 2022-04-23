@@ -1,0 +1,9 @@
+[submodule "chatter/external/usb-hid-usage"]
+	path = chatter/external/usb-hid-usage
+	url = https://github.com/minsang-github/usb-hid-usage.git
+[submodule "chatter/external/clib/list"]
+	path = chatter/external/clib/list
+	url = https://github.com/clibs/list.git
+[submodule "chatter/external/argparse"]
+	path = chatter/external/argparse
+	url = https://github.com/cofyc/argparse.git

@@ -18,5 +18,76 @@
     <ClCompile Include="chatter.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="external\usb-hid-usage\usb-hid-usage.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="window.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="vkey.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="hid.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="keyboard.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="mouse.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="devicelist.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="external\clib\list\src\list.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="external\clib\list\src\list_iterator.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="external\clib\list\src\list_node.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="registered.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="external\argparse\argparse.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="timer.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="chatter.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="config.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="devicelist.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="hid.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="keyboard.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="mouse.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="registered.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="vkey.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="window.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="timer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

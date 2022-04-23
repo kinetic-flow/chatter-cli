@@ -1,130 +1,223 @@
-#include <stdio.h>
-#include <malloc.h>
-#include <wchar.h>
-#include <Windows.h>
+#include "chatter.h"
+#include "argparse.h"
 
-PRAWINPUTDEVICELIST
-GetDevices(
-    _Out_ PUINT DeviceCountOut
+APP_CONFIG AppConfig;
+LOG_CONFIG LogConfig;
+
+VOID
+PrintLogTimeStamp(
+    VOID
     )
 {
-
-    UINT ActualDeviceCount = 0;
-    UINT DeviceCount = 0;
-    PRAWINPUTDEVICELIST DeviceList = NULL;
-
-    *DeviceCountOut = 0;
-
-    // Check how many devices exist
-    ActualDeviceCount = GetRawInputDeviceList(
-        NULL, &DeviceCount, sizeof(DeviceList[0]));
-    if (ActualDeviceCount < 0) {
-        printf("GetRawInputDeviceList failed, GLE = 0x%x\n", GetLastError());
-        return NULL;
-    }
-    if (DeviceCount == 0) {
-        printf("GetRawInputDeviceList returned no devices\n");
-        return NULL;
-    }
-
-    DeviceList = malloc(sizeof(DeviceList[0]) * DeviceCount);
-    while (TRUE) {
-        ActualDeviceCount = GetRawInputDeviceList(
-            DeviceList, &DeviceCount, sizeof(DeviceList[0]));
-
-        // success
-        if (0 <= ActualDeviceCount) {
-            *DeviceCountOut = ActualDeviceCount;
-            printf("Device Count %d\n", DeviceCount);
-            break;
-        }
-
-        // buffer too small - try again with a bigger buffer
-        if (GetLastError() == ERROR_INSUFFICIENT_BUFFER) {
-            free(DeviceList);
-            DeviceList = malloc(sizeof(DeviceList[0]) * DeviceCount);
-            continue;
-        }
-
-        // some other error
-        printf("GetRawInputDeviceList failed, GLE = 0x%x\n", GetLastError());
-        free(DeviceList);
-        DeviceList = NULL;
-        break;
-    }
-
-    if (*DeviceCountOut == 0) {
-        free(DeviceList);
-        DeviceList = NULL;
-    }
-    return DeviceList;
+    SYSTEMTIME Time;
+    GetLocalTime(&Time);
+    printf(
+        "[%02d:%02d:%02d.%03d] ",
+        Time.wHour,
+        Time.wMinute,
+        Time.wSecond,
+        Time.wMilliseconds);
 }
 
 VOID
-DumpDevices(
+RegisterDevices(
     _In_count_(DeviceCount) PRAWINPUTDEVICELIST DeviceList,
     _In_ UINT DeviceCount
     )
-
 {
-
-    UINT BytesReturned;
     UINT Count;
+    PRAWINPUTDEVICELIST Device;
     LPWSTR DeviceName = NULL;
-    UINT RequiredSize = 0;
-
-    if (DeviceList == NULL || DeviceCount == 0) {
-        printf("No device found!\n");
-        return;
-    }
+    RID_DEVICE_INFO DeviceInfo;
+    BOOLEAN Register;
 
     for (Count = 0; Count < DeviceCount; Count += 1) {
-        BytesReturned = GetRawInputDeviceInfo(
-            DeviceList[Count].hDevice,
-            RIDI_DEVICENAME,
-            NULL,
-            &RequiredSize);
-
-        if (BytesReturned != 0 || RequiredSize == 0) {
-            printf(
-                "GetRawInputDeviceInfo failed, RequiredSize = 0x%x, GLE = 0x%x\n",
-                RequiredSize,
-                GetLastError());
+        Device = &DeviceList[Count];
+        if (!GetDeviceInfo(Device, &DeviceInfo)) {
             continue;
         }
 
-        DeviceName = malloc(sizeof(WCHAR) * (RequiredSize + 1));
-        BytesReturned = GetRawInputDeviceInfo(
-            DeviceList[Count].hDevice,
-            RIDI_DEVICENAME,
-            (PVOID)DeviceName,
-            &RequiredSize);
+        DeviceName = GetDeviceInstancePath(Device);
+        Register = TRUE;
+        if (!AppConfig.UseVendorSpecificHidDevices &&
+            Device->dwType == RIM_TYPEHID &&
+            (DeviceInfo.hid.usUsagePage >> 8) == 0xff) {
 
-        if (BytesReturned == 0 || RequiredSize == 0) {
-            printf(
-                "GetRawInputDeviceInfo failed, RequiredSize = 0x%x, GLE = 0x%x\n",
-                RequiredSize,
-                GetLastError());
-            free(DeviceName);
-            DeviceName = NULL;
-            continue;
+            Register = FALSE;
+
+            if (LogConfig.VerboseError) {
+                printf(
+                    "Skipping device with vendor-specific usage page, Device %S, usage page 0x%x\n",
+                    DeviceName,
+                    DeviceInfo.hid.usUsagePage);
+            }
         }
 
-        printf("Device instance path: %S\n", DeviceName);
+        if (Register) {
+            RegisterDevice(Device->hDevice, DeviceName, &DeviceInfo);
+        }
 
         free(DeviceName);
         DeviceName = NULL;
     }
 }
 
-int main() {
+VOID
+ProcessWmInput (
+    _In_ PRAWINPUT Data
+    )
+
+{
+    PREGISTERED_DEVICE Device;
+    BOOLEAN Log;
+
+    Device = FindRegisteredDevice(Data->header.hDevice);
+    if (Device == NULL) {
+        if (LogConfig.VerboseError) {
+            printf(
+                "Received input from unregistered device 0x%x\n",
+                (DWORD)Data->header.hDevice);
+        }
+        return;
+    }
+
+    switch (Data->header.dwType) {
+        case RIM_TYPEMOUSE:
+            Log = CheckMouseEvent(&Data->data.mouse);
+            break;
+        case RIM_TYPEKEYBOARD:
+            Log = CheckKeyboardEvent(&Data->data.keyboard);
+            break;
+        case RIM_TYPEHID:
+            Log = CheckHidEvent(&Data->data.hid);
+            break;
+        default:
+            Log = FALSE;
+            break;
+    }
+
+    if (!Log) {
+        return;
+    }
+
+    if (LogConfig.LogEvents) {
+        PrintLogTimeStamp();
+        printf("[Device Type: ");
+        if (Data->header.dwType <= RIM_TYPEHID) {
+            printf("%S", DeviceTypes[Data->header.dwType]);
+        } else {
+            printf("Unknown type %d", Data->header.dwType);
+        }
+
+        printf(", Device ID: 0x%x]\n", (DWORD)Data->header.hDevice);
+    }
+
+    switch (Data->header.dwType) {
+        case RIM_TYPEMOUSE:
+            ProcessMouseEvent(Device, &Data->data.mouse);
+            break;
+        case RIM_TYPEKEYBOARD:
+            ProcessKeyboardEvent(Device, &Data->data.keyboard);
+            break;
+        case RIM_TYPEHID:
+            ProcessHidEvent(Device, &Data->data.hid);
+            break;
+        default:
+            break;
+    }
+
+    if (LogConfig.LogEvents) {
+        printf("\n");
+    }
+}
+
+DECLSPEC_NORETURN
+VOID
+FailFast (
+    _In_ UINT ExitCode
+    )
+
+{
+    printf("Exiting with error 0x%x", ExitCode);
+    ExitProcess(ExitCode);
+}
+
+static const char *const usages[] = {
+    "Use one of these modes with other optional flags:",
+    "chatter.exe -c  --  chattering test mode",
+    "chatter.exe -l  --  to see the list of HID devices",
+    "chatter.exe -m  --  to monitor all HID input events",
+    NULL,
+};
+
+int
+main(
+    int argc,
+    char* argv[]
+    )
+{
+    INT ArgChatter = FALSE;
+    INT ArgCursor = FALSE;
+    INT ArgList = FALSE;
+    INT ArgMonitor = FALSE;
+    INT ArgVerbose = FALSE;
+    INT ArgDuration = 15;
     UINT DeviceCount;
     PRAWINPUTDEVICELIST DeviceList;
+    struct argparse Argparse;
+    struct argparse_option Options[] = {
+        OPT_HELP(),
+        OPT_BOOLEAN('c', "chatter", &ArgChatter, "(MODE) Chatter test mode", NULL, 0, 0),
+        OPT_BOOLEAN('l', "list", &ArgList, "(MODE) List all raw input devices", NULL, 0, 0),
+        OPT_BOOLEAN('m', "monitor", &ArgMonitor, "(MODE) Monitor all HID input events from device(s)", NULL, 0, 0),
+        OPT_BOOLEAN('c', "cursor", &ArgCursor, "(Optional) Enable mouse movement tracing", NULL, 0, 0),
+        OPT_BOOLEAN('v', "verbose", &ArgVerbose, "(Optional) Enable verbose prints", NULL, 0, 0),
+        OPT_INTEGER('d', "duration", &ArgDuration, "(Optional) Set glitch duration in milliseconds, default 15ms", NULL, 0, 0),
+        OPT_END(),
+    };
+    argparse_init(&Argparse, Options, usages, 0);
+    argparse_describe(&Argparse, "\nchatter-cli - button tester for HID devices", NULL);
+    if (argc < 2) {
+        argparse_usage(&Argparse);
+        printf("\n");
+        system("pause");
+        printf("\n");
+        return -1;
+    }
+    argc = argparse_parse(&Argparse, argc, argv);
+    if (!ArgChatter && !ArgList && !ArgMonitor) {
+        argparse_usage(&Argparse);
+        return -1;
+    }
+
+    AppConfig.GlitchDurationInMs = ArgDuration;
+
+    LogConfig.LogChatter = ArgChatter;
+    LogConfig.LogEvents = ArgMonitor;
+    LogConfig.VerboseError = ArgVerbose;
+    LogConfig.Mouse.Movement = ArgCursor;
+    LogConfig.Mouse.ButtonClicks = TRUE;
+    LogConfig.Mouse.Verbose = ArgVerbose;
+    LogConfig.Keyboard.Verbose = ArgVerbose;
+    LogConfig.Hid.UsageText = ArgVerbose;
+
+    InitTimerSupport();
+    InitializeRegisteredList();
 
     DeviceList = GetDevices(&DeviceCount);
-    DumpDevices(DeviceList, DeviceCount);
     if (DeviceList != NULL) {
+        RegisterDevices(DeviceList, DeviceCount);
         free(DeviceList);
     }
+    if (ArgList) {
+        DumpRegisteredDevices();
+    }
+    if (ArgChatter || ArgMonitor) {
+        printf("Monitoring raw input from %d device(s)\n", DeviceCount);
+        printf("Press CTRL+C to exit any time.\n\n");
+        CreateNewWindow();
+    }
+
+    DeinitializeRegisteredList();
     return 0;
 }

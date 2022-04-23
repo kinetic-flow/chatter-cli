@@ -90,10 +90,12 @@
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
+      <AdditionalIncludeDirectories>D:\doc\git\chattering\chatter-cli\chatter-cli\chatter\external\argparse;D:\doc\git\chattering\chatter-cli\chatter-cli\chatter\external\clib\list\src;D:\doc\git\chattering\chatter-cli\chatter-cli\chatter\external\usb-hid-usage;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>hid.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -106,12 +108,14 @@
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
+      <AdditionalIncludeDirectories>D:\doc\git\chattering\chatter-cli\chatter-cli\chatter\external\argparse;D:\doc\git\chattering\chatter-cli\chatter-cli\chatter\external\clib\list\src;D:\doc\git\chattering\chatter-cli\chatter-cli\chatter\external\usb-hid-usage;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>hid.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -144,6 +148,31 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="chatter.c" />
+    <ClCompile Include="devicelist.c" />
+    <ClCompile Include="external\argparse\argparse.c" />
+    <ClCompile Include="external\clib\list\src\list.c" />
+    <ClCompile Include="external\clib\list\src\list_iterator.c" />
+    <ClCompile Include="external\clib\list\src\list_node.c" />
+    <ClCompile Include="external\usb-hid-usage\usb-hid-usage.c" />
+    <ClCompile Include="hid.c" />
+    <ClCompile Include="keyboard.c" />
+    <ClCompile Include="mouse.c" />
+    <ClCompile Include="registered.c" />
+    <ClCompile Include="timer.c" />
+    <ClCompile Include="vkey.c" />
+    <ClCompile Include="window.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="chatter.h" />
+    <ClInclude Include="config.h" />
+    <ClInclude Include="devicelist.h" />
+    <ClInclude Include="hid.h" />
+    <ClInclude Include="keyboard.h" />
+    <ClInclude Include="mouse.h" />
+    <ClInclude Include="registered.h" />
+    <ClInclude Include="timer.h" />
+    <ClInclude Include="vkey.h" />
+    <ClInclude Include="window.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
