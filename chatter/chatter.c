@@ -38,6 +38,10 @@ RegisterDevices(
         }
 
         DeviceName = GetDeviceInstancePath(Device);
+        if (DeviceName == NULL) {
+            continue;
+        }
+
         Register = TRUE;
         if (!AppConfig.UseVendorSpecificHidDevices &&
             Device->dwType == RIM_TYPEHID &&

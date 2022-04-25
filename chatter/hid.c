@@ -118,8 +118,9 @@ DumpHid(
         }
         printf("\n");
 
-        printf("%-*s: %d\n", HID_ALIGN,
-            "ButtonCaps ReportCount", ButtonCaps->ReportCount);
+        // Only available in newer WDK
+        // printf("%-*s: %d\n", HID_ALIGN,
+        //    "ButtonCaps ReportCount", ButtonCaps->ReportCount);
 
         if (ButtonCaps->IsRange) {
             printf("%-*s: [%d, %d]\n", HID_ALIGN,
