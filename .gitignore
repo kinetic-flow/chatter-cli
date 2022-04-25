@@ -52,6 +52,7 @@ Mkfile.old
 dkms.conf
 
 # IDE
+dist/
 .vscode
 chatter/.vscode
 chatter/.vs

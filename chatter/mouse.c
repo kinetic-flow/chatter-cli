@@ -1,5 +1,8 @@
 #include "mouse.h"
 
+#define M_ALIGN 24
+#define ME_ALIGN 16
+
 VOID
 DumpMouseEvent (
     _In_ PRAWMOUSE Mouse
@@ -45,7 +48,7 @@ DumpMouse(
     _In_ PRID_DEVICE_INFO_MOUSE Mouse
     )
 {
-    printf("dwId:\t\t\t0x%x ", Mouse->dwId);
+    printf("%-*s: 0x%x ", M_ALIGN, "dwId", Mouse->dwId);
     if (Mouse->dwId & MOUSE_HID_HARDWARE) {
         printf("MOUSE_HID_HARDWARE ");
     }
@@ -56,9 +59,11 @@ DumpMouse(
         printf("HORIZONTAL_WHEEL_PRESENT ");
     }
     printf("\n");
-    printf("dwNumberOfButtons:\t%d\n", Mouse->dwNumberOfButtons);
-    printf("dwSampleRate:\t\t%d\n", Mouse->dwSampleRate);
-    printf("fHasHorizontalWheel:\t%d\n", (DWORD)Mouse->fHasHorizontalWheel);
+    printf("%-*s: 0x%x\n", M_ALIGN,
+        "dwNumberOfButtons", Mouse->dwNumberOfButtons);
+    printf("%-*s: 0x%x\n", M_ALIGN, "dwSampleRate", Mouse->dwSampleRate);
+    printf("%-*s: 0x%x\n", M_ALIGN,
+        "fHasHorizontalWheel", Mouse->fHasHorizontalWheel);
 }
 
 BOOLEAN
@@ -85,7 +90,7 @@ ProcessMouseUpEvent(
     
     TimeInMs = StopTimerAndGetMsElapsed(TimerList, MouseButton);
     PrintLogTimeStamp();
-    printf("Duration (  Mouse button %d): %*d ms", MouseButton, 6, TimeInMs);
+    printf("Duration (Mouse button %d  ): %*d ms", MouseButton, 6, TimeInMs);
     if (TimeInMs <= AppConfig.GlitchDurationInMs) {
         printf("\t***GLITCH!!***");
     }
@@ -148,27 +153,25 @@ DumpMouseEvent (
     _In_ PRAWMOUSE Mouse
     )
 {
-    if (LogConfig.Mouse.Verbose) {
-        printf("usFlags:\t\t0x%x ", Mouse->usFlags);
-        if (Mouse->usFlags & MOUSE_MOVE_RELATIVE) {
-            printf("MOUSE_MOVE_RELATIVE ");
-        }
-        if (Mouse->usFlags & MOUSE_MOVE_ABSOLUTE) {
-            printf("MOUSE_MOVE_ABSOLUTE ");
-        }
-        if (Mouse->usFlags & MOUSE_VIRTUAL_DESKTOP) {
-            printf("MOUSE_VIRTUAL_DESKTOP ");
-        }
-        if (Mouse->usFlags & MOUSE_ATTRIBUTES_CHANGED) {
-            printf("MOUSE_ATTRIBUTES_CHANGED ");
-        }
-        if (Mouse->usFlags & MOUSE_MOVE_NOCOALESCE) {
-            printf("MOUSE_MOVE_NOCOALESCE ");
-        }
-        printf("\n");
+    printf("%-*s: 0x%x ", ME_ALIGN, "usFlags", Mouse->usFlags);
+    if ((Mouse->usFlags & MOUSE_MOVE_ABSOLUTE) == 0) { // MOUSE_MOVE_RELATIVE
+        printf("MOUSE_MOVE_RELATIVE ");
     }
+    if (Mouse->usFlags & MOUSE_MOVE_ABSOLUTE) {
+        printf("MOUSE_MOVE_ABSOLUTE ");
+    }
+    if (Mouse->usFlags & MOUSE_VIRTUAL_DESKTOP) {
+        printf("MOUSE_VIRTUAL_DESKTOP ");
+    }
+    if (Mouse->usFlags & MOUSE_ATTRIBUTES_CHANGED) {
+        printf("MOUSE_ATTRIBUTES_CHANGED ");
+    }
+    if (Mouse->usFlags & MOUSE_MOVE_NOCOALESCE) {
+        printf("MOUSE_MOVE_NOCOALESCE ");
+    }
+    printf("\n");
 
-    printf("usButtonFlags:\t\t0x%x ", Mouse->usButtonFlags);
+    printf("%-*s: 0x%x ", ME_ALIGN, "usButtonFlags", Mouse->usButtonFlags);
     if (Mouse->usButtonFlags & RI_MOUSE_LEFT_BUTTON_DOWN) {
         printf("RI_MOUSE_LEFT_BUTTON_DOWN ");
     }
@@ -209,16 +212,15 @@ DumpMouseEvent (
 
     if (Mouse->usButtonFlags & RI_MOUSE_WHEEL ||
         Mouse->usButtonFlags & RI_MOUSE_HWHEEL) {
-        printf("usButtonData:\t\t%d\n", (SHORT)Mouse->usButtonData);
+        printf("%-*s: 0x%x\n", ME_ALIGN,
+            "usButtonData", (SHORT)Mouse->usButtonData);
     }
 
-    if (LogConfig.Mouse.Verbose) {
-        printf("ulRawButtons:\t\t0x%x\n", Mouse->ulRawButtons);
-    }
+    printf("%-*s: 0x%x\n", ME_ALIGN, "ulRawButtons", Mouse->ulRawButtons);
     if (LogConfig.Mouse.Movement) {
-        printf("lLastX, LastY:\t\t%d, %d\n", Mouse->lLastX, Mouse->lLastY);
+        printf("%-*s: %d, %d\n", ME_ALIGN,
+            "lLastX, lLastY", Mouse->lLastX, Mouse->lLastY);
     }
-    if (LogConfig.Mouse.Verbose) {
-        printf("ulExtraInformation:\t0x%x\n", Mouse->ulExtraInformation);
-    }
+    printf("%-*s: 0x%x\n", ME_ALIGN,
+        "ulExtraInfo", Mouse->ulExtraInformation);
 }

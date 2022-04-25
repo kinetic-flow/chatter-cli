@@ -1,5 +1,8 @@
 #include "hid.h"
 
+#define HID_ALIGN 30
+#define HIDE_ALIGN 8
+
 PHIDP_PREPARSED_DATA
 GetHidPreparsedData(
     _In_ HANDLE Handle
@@ -25,53 +28,79 @@ DumpHid(
     USAGE Usage;
     BOOLEAN PrintAll;
 
-    printf("dwVendorId:\t\t\t0x%x\n", Hid->dwVendorId);
-    printf("dwProductId:\t\t\t0x%x\n", Hid->dwProductId);
-    printf("dwVersionNumber:\t\t%d\n", Hid->dwVersionNumber);
-    printf("usUsagePage:\t\t\t0x%x\n", Hid->usUsagePage);
-    printf("usUsage:\t\t\t0x%x\n", Hid->usUsage);
+    printf("%-*s: 0x%x\n", HID_ALIGN, "dwVendorId", Hid->dwVendorId);
+    printf("%-*s: 0x%x\n", HID_ALIGN, "dwProductId", Hid->dwProductId);
+    printf("%-*s: 0x%x\n", HID_ALIGN, "dwVersionNumber", Hid->dwVersionNumber);
+    printf("%-*s: 0x%x\n", HID_ALIGN, "usUsagePage", Hid->usUsagePage);
+    printf("%-*s: 0x%x\n", HID_ALIGN, "usUsage", Hid->usUsage);
+
     UsageText = getHidUsageText(Hid->usUsagePage, Hid->usUsage);
     if (UsageText != NULL) {
-        printf("Usage Text:\t\t\t%s\n", UsageText);
+        printf("%-*s: %s\n", HID_ALIGN, "Usage Text", UsageText);
         free(UsageText);
     }
 
     printf("---\n");
 
-    printf("Manufacturer String:\t\t%S\n", HidInfo->Manufacturer);
-    printf("Product String:\t\t\t%S\n", HidInfo->Product);
-    printf("Serial Number String:\t\t%S\n", HidInfo->SerialNumber);
+    printf("%-*s: %S\n", HID_ALIGN,
+        "Manufacturer String", HidInfo->Manufacturer);
+    printf("%-*s: %S\n", HID_ALIGN,
+        "Product String", HidInfo->Product);
+    printf("%-*s: %S\n", HID_ALIGN,
+        "SerialNumber String", HidInfo->SerialNumber);
 
     printf("---\n");
 
     Caps = &HidInfo->HidCaps;
-    printf("HID Usage:\t\t\t0x%x\n", Caps->Usage);
-    printf("HID UsagePage:\t\t\t0x%x\n", Caps->UsagePage);
-    printf("HID InputReportByteLength:\t%d\n", Caps->InputReportByteLength);
-    printf("HID OutputReportByteLength:\t%d\n", Caps->OutputReportByteLength);
-    printf("HID FeatureReportByteLength:\t%d\n", Caps->FeatureReportByteLength);
-    printf("HID NumberLinkCollectionNodes:\t%d\n", Caps->NumberLinkCollectionNodes);
-    printf("HID NumberInputButtonCaps:\t%d\n", Caps->NumberInputButtonCaps);
-    printf("HID NumberInputValueCaps:\t%d\n", Caps->NumberInputValueCaps);
-    printf("HID NumberInputDataIndices:\t%d\n", Caps->NumberInputDataIndices);
-    printf("HID NumberOutputButtonCaps:\t%d\n", Caps->NumberOutputButtonCaps);
-    printf("HID NumberOutputValueCaps:\t%d\n", Caps->NumberOutputValueCaps);
-    printf("HID NumberOutputDataIndices:\t%d\n", Caps->NumberOutputDataIndices);
-    printf("HID NumberFeatureButtonCaps:\t%d\n", Caps->NumberFeatureButtonCaps);
-    printf("HID NumberFeatureValueCaps:\t%d\n", Caps->NumberFeatureValueCaps);
-    printf("HID NumberFeatureDataIndices:\t%d\n", Caps->NumberFeatureDataIndices);
+
+    printf("%-*s: 0x%x\n", HID_ALIGN, "HID Usage", Caps->Usage);
+    printf("%-*s: 0x%x\n", HID_ALIGN, "HID UsagePage", Caps->UsagePage);
+    printf("%-*s: 0x%x\n", HID_ALIGN,
+        "HID InputReportByteLength", Caps->InputReportByteLength);
+    printf("%-*s: 0x%x\n", HID_ALIGN,
+        "HID OutputReportByteLength", Caps->OutputReportByteLength);
+    printf("%-*s: 0x%x\n", HID_ALIGN,
+        "HID FeatureReportByteLength", Caps->FeatureReportByteLength);
+    printf("%-*s: %d\n", HID_ALIGN,
+        "HID NumberLinkCollectionNodes", Caps->NumberLinkCollectionNodes);
+    printf("%-*s: %d\n", HID_ALIGN,
+        "HID NumberInputButtonCaps", Caps->NumberInputButtonCaps);
+    printf("%-*s: %d\n", HID_ALIGN,
+        "HID NumberInputValueCaps", Caps->NumberInputValueCaps);
+    printf("%-*s: %d\n", HID_ALIGN,
+        "HID NumberInputDataIndices", Caps->NumberInputDataIndices);
+    printf("%-*s: %d\n", HID_ALIGN,
+        "HID NumberOutputButtonCaps", Caps->NumberOutputButtonCaps);
+    printf("%-*s: %d\n", HID_ALIGN,
+        "HID NumberOutputValueCaps", Caps->NumberOutputValueCaps);
+    printf("%-*s: %d\n", HID_ALIGN,
+        "HID NumberOutputDataIndices", Caps->NumberOutputDataIndices);
+    printf("%-*s: %d\n", HID_ALIGN,
+        "HID NumberFeatureButtonCaps", Caps->NumberFeatureButtonCaps);
+    printf("%-*s: %d\n", HID_ALIGN,
+        "HID NumberFeatureValueCaps", Caps->NumberFeatureValueCaps);
+    printf("%-*s: %d\n", HID_ALIGN,
+        "HID NumberFeatureDataIndices", Caps->NumberFeatureDataIndices);
 
     for (Count = 0; Count < Caps->NumberInputButtonCaps; Count += 1) {
         printf("---\n");
-        ButtonCaps = &HidInfo->ButtonCaps[Count];
-        printf("ButtonCaps UsagePage:\t\t0x%x\n", ButtonCaps->UsagePage);
-        printf("ButtonCaps ReportID:\t\t%d\n", ButtonCaps->ReportID);
-        printf("ButtonCaps BitField:\t\t%d\n", ButtonCaps->BitField);
-        printf("ButtonCaps LinkCollection:\t%d\n", ButtonCaps->LinkCollection);
-        printf("ButtonCaps LinkUsage:\t\t%d\n", ButtonCaps->LinkUsage);
-        printf("ButtonCaps LinkUsagePage:\t%d\n", ButtonCaps->LinkUsagePage);
 
-        printf("ButtonCaps ...:\t\t\t");
+        ButtonCaps = &HidInfo->ButtonCaps[Count];
+
+        printf("%-*s: 0x%x\n", HID_ALIGN,
+            "ButtonCaps UsagePage", ButtonCaps->UsagePage);
+        printf("%-*s: %d\n", HID_ALIGN,
+            "ButtonCaps ReportID", ButtonCaps->ReportID);
+        printf("%-*s: %d\n", HID_ALIGN,
+            "ButtonCaps BitField", ButtonCaps->BitField);
+        printf("%-*s: %d\n", HID_ALIGN,
+            "ButtonCaps LinkCollection", ButtonCaps->LinkCollection);
+        printf("%-*s: %d\n", HID_ALIGN,
+            "ButtonCaps LinkUsage", ButtonCaps->LinkUsage);
+        printf("%-*s: %d\n", HID_ALIGN,
+            "ButtonCaps LinkUsagePage", ButtonCaps->LinkUsagePage);
+
+        printf("%-*s: ", HID_ALIGN, "ButtonCaps ...");
         if (ButtonCaps->IsAlias) {
             printf("IsAlias ");
         }
@@ -89,9 +118,12 @@ DumpHid(
         }
         printf("\n");
 
-        printf("ButtonCaps ReportCount:\t\t%d\n", ButtonCaps->ReportCount);
+        printf("%-*s: %d\n", HID_ALIGN,
+            "ButtonCaps ReportCount", ButtonCaps->ReportCount);
+
         if (ButtonCaps->IsRange) {
-            printf("ButtonCaps Usage:\t\t[%d, %d]\n",
+            printf("%-*s: [%d, %d]\n", HID_ALIGN,
+                "ButtonCaps Usage",
                 ButtonCaps->Range.UsageMin, ButtonCaps->Range.UsageMax);
 
             if (LogConfig.Hid.UsageText) {
@@ -102,7 +134,7 @@ DumpHid(
                 PrintAll = FALSE;
             }
             if (PrintAll) {
-                printf("ButtonCaps Usage Text:\t\t");
+                printf("%-*s: ", HID_ALIGN, "ButtonCaps Usage Text");
                 for (Usage = ButtonCaps->Range.UsageMin;
                     Usage <= ButtonCaps->Range.UsageMax;
                     Usage += 1) {
@@ -117,38 +149,43 @@ DumpHid(
                 }
                 printf("\n");
             } else {
-                printf(
-                    "ButtonCaps Usage Text:\t\t"
+                printf("%-*s: %s", HID_ALIGN,
+                    "ButtonCaps Usage Text",
                     "Too many to print, use verbose mode to show all\n");
             }
 
-            printf("ButtonCaps String:\t\t[%d, %d]\n",
+            printf("%-*s: [%d, %d]\n", HID_ALIGN,
+                "ButtonCaps StringMinMax",
                 ButtonCaps->Range.StringMin, ButtonCaps->Range.StringMax);
-            printf("ButtonCaps Designator:\t\t[%d, %d]\n",
+            printf("%-*s: [%d, %d]\n", HID_ALIGN,
+                "ButtonCaps DesignatorMinMax",
                 ButtonCaps->Range.DesignatorMin, ButtonCaps->Range.DesignatorMax);
-            printf("ButtonCaps DataIndex:\t\t[%d, %d]\n",
+            printf("%-*s: [%d, %d]\n", HID_ALIGN,
+                "ButtonCaps DataIndexMinMax",
                 ButtonCaps->Range.DataIndexMin, ButtonCaps->Range.DataIndexMax);
+
         } else {
-            printf(
-                "ButtonCaps Usage:\t\t%d\n",
-                ButtonCaps->NotRange.Usage);
+            printf("%-*s: %d\n", HID_ALIGN,
+                "ButtonCaps Usage", ButtonCaps->NotRange.Usage);
 
             if (LogConfig.Hid.UsageText) {
-                UsageText = getHidUsageText(ButtonCaps->UsagePage, ButtonCaps->NotRange.Usage);
+                UsageText = getHidUsageText(
+                    ButtonCaps->UsagePage, ButtonCaps->NotRange.Usage);
                 if (UsageText != NULL) {
-                    printf("ButtonCaps Usage Text:\t\t%s\n", UsageText);
+                    printf("%-*s: %s\n", HID_ALIGN,
+                        "ButtonCaps Usage Text", UsageText);
                     free(UsageText);
                 }
             }
 
-            printf(
-                "ButtonCaps StringIndex:\t\t%d\n",
+            printf("%-*s: %d\n", HID_ALIGN,
+                "ButtonCaps StringIndex",
                 ButtonCaps->NotRange.StringIndex);
-            printf(
-                "ButtonCaps DesignatorIndex:\t%d\n",
+            printf("%-*s: %d\n", HID_ALIGN,
+                "ButtonCaps DesignatorIndex",
                 ButtonCaps->NotRange.DesignatorIndex);
-            printf(
-                "ButtonCaps DataIndex:\t\t%d\n",
+            printf("%-*s: %d\n", HID_ALIGN,
+                "ButtonCaps DataIndex",
                 ButtonCaps->NotRange.DataIndex);
         }
     }
@@ -156,14 +193,23 @@ DumpHid(
     for (Count = 0; Count < Caps->NumberInputValueCaps; Count += 1) {
         printf("---\n");
         ValueCaps = &HidInfo->ValueCaps[Count];
-        printf("ValueCaps UsagePage:\t\t0x%x\n", ValueCaps->UsagePage);
-        printf("ValueCaps ReportID:\t\t%d\n", ValueCaps->ReportID);
-        printf("ValueCaps BitField:\t\t%d\n", ValueCaps->BitField);
-        printf("ValueCaps LinkCollection:\t%d\n", ValueCaps->LinkCollection);
-        printf("ValueCaps LinkUsage:\t\t%d\n", ValueCaps->LinkUsage);
-        printf("ValueCaps LinkUsagePage:\t%d\n", ValueCaps->LinkUsagePage);
 
-        printf("ValueCaps ...:\t\t\t");
+        printf("%-*s: 0x%x\n", HID_ALIGN,
+            "ValueCaps UsagePage", ValueCaps->UsagePage);
+        printf("%-*s: %d\n", HID_ALIGN,
+            "ValueCaps ReportID", ValueCaps->ReportID);
+        printf("%-*s: %d\n", HID_ALIGN,
+            "ValueCaps BitField", ValueCaps->BitField);
+        printf("%-*s: %d\n", HID_ALIGN,
+            "ValueCaps LinkCollection", ValueCaps->LinkCollection);
+        printf("%-*s: %d\n", HID_ALIGN,
+            "ValueCaps LinkUsage", ValueCaps->LinkUsage);
+        printf("%-*s: %d\n", HID_ALIGN,
+            "ValueCaps LinkUsagePage", ValueCaps->LinkUsagePage);
+        printf("%-*s: %d\n", HID_ALIGN,
+            "ValueCaps ReportID", ValueCaps->ReportID);
+
+        printf("%-*s: ", HID_ALIGN, "ValueCaps ...");
         if (ValueCaps->IsAlias) {
             printf("IsAlias ");
         }
@@ -184,20 +230,26 @@ DumpHid(
         }
         printf("\n");
 
-        printf("ValueCaps BitSize:\t\t%d\n", ValueCaps->BitSize);
-        printf("ValueCaps ReportCount:\t\t%d\n", ValueCaps->ReportCount);
-        printf("ValueCaps UnitsExp:\t\t0x%x\n", ValueCaps->UnitsExp);
-        printf("ValueCaps Units:\t\t0x%x\n", ValueCaps->Units);
-        printf("ValueCaps LogicalMin:\t\t0x%x\n", ValueCaps->LogicalMin);
-        printf("ValueCaps LogicalMax:\t\t0x%x\n", ValueCaps->LogicalMax);
-        printf("ValueCaps PhysicalMin:\t\t0x%x\n", ValueCaps->PhysicalMin);
-        printf("ValueCaps PhysicalMax:\t\t0x%x\n", ValueCaps->PhysicalMax);
+        printf("%-*s: %d\n", HID_ALIGN,
+            "ValueCaps BitSize", ValueCaps->BitSize);
+        printf("%-*s: %d\n", HID_ALIGN,
+            "ValueCaps ReportCount", ValueCaps->ReportCount);
+        printf("%-*s: 0x%x\n", HID_ALIGN,
+            "ValueCaps UnitsExp", ValueCaps->UnitsExp);
+        printf("%-*s: 0x%x\n", HID_ALIGN,
+            "ValueCaps Units", ValueCaps->Units);
+        printf("%-*s: [0x%x, 0x%x]\n", HID_ALIGN,
+            "ValueCaps LogicalMinMax", ValueCaps->LogicalMin, ValueCaps->LogicalMax);
+        printf("%-*s: [0x%x, 0x%x]\n", HID_ALIGN,
+            "ValueCaps PhysicalMinMax", ValueCaps->PhysicalMin, ValueCaps->PhysicalMax);
 
         if (ValueCaps->IsRange) {
-            printf("ValueCaps Usage:\t\t[%d, %d]\n",
+            printf("%-*s: [%d, %d]\n", HID_ALIGN,
+                "ValueCaps UsageMinMax",
                 ValueCaps->Range.UsageMin, ValueCaps->Range.UsageMax);
+
             if (LogConfig.Hid.UsageText) {
-                printf("ValueCaps Usage Text:\t\t");
+                printf("%-*s: ", HID_ALIGN, "ValueCaps Usage Text");
                 for (Usage = ValueCaps->Range.UsageMin;
                     Usage <= ValueCaps->Range.UsageMax;
                     Usage += 1) {
@@ -213,33 +265,37 @@ DumpHid(
                 printf("\n");
             }
 
-            printf("ValueCaps String:\t\t[%d, %d]\n",
+            printf("%-*s: [%d, %d]\n", HID_ALIGN,
+                "ValueCaps StringMinMax",
                 ValueCaps->Range.StringMin, ValueCaps->Range.StringMax);
-            printf("ValueCaps Designator:\t\t[%d, %d]\n",
+            printf("%-*s: [%d, %d]\n", HID_ALIGN,
+                "ValueCaps DesignatorMinMax",
                 ValueCaps->Range.DesignatorMin, ValueCaps->Range.DesignatorMax);
-            printf("ValueCaps DataIndex:\t\t[%d, %d]\n",
+            printf("%-*s: [%d, %d]\n", HID_ALIGN,
+                "ValueCaps DataIndexMinMax",
                 ValueCaps->Range.DataIndexMin, ValueCaps->Range.DataIndexMax);
+
         } else {
-            printf(
-                "ValueCaps Usage:\t\t%d\n",
-                ValueCaps->NotRange.Usage);
+            printf("%-*s: %d\n", HID_ALIGN,
+                "ValueCaps Usage", ValueCaps->NotRange.Usage);
 
             if (LogConfig.Hid.UsageText) {
                 UsageText = getHidUsageText(ValueCaps->UsagePage, ValueCaps->NotRange.Usage);
                 if (UsageText != NULL) {
-                    printf("ValueCaps Usage Text:\t\t%s\n", UsageText);
+                    printf("%-*s: %s\n", HID_ALIGN,
+                        "ValueCaps Usage Text", UsageText);
                     free(UsageText);
                 }
             }
 
-            printf(
-                "ValueCaps StringIndex:\t\t%d\n",
+            printf("%-*s: %d\n", HID_ALIGN,
+                "ValueCaps StringIndex",
                 ValueCaps->NotRange.StringIndex);
-            printf(
-                "ValueCaps DesignatorIndex:\t%d\n",
+            printf("%-*s: %d\n", HID_ALIGN,
+                "ValueCaps DesignatorIndex",
                 ValueCaps->NotRange.DesignatorIndex);
-            printf(
-                "ValueCaps DataIndex:\t\t%d\n",
+            printf("%-*s: %d\n", HID_ALIGN,
+                "ValueCaps DataIndex",
                 ValueCaps->NotRange.DataIndex);
         }
     }
@@ -670,7 +726,7 @@ ProcessHidEvent(
 
                     PrintLogTimeStamp();
                     printf(
-                        "Duration (%*s): %*d ms",
+                        "Duration (%-*s): %*d ms",
                         16, UsageText,
                         6, TimeInMs);
 
@@ -750,7 +806,7 @@ DumpHidEvent(
             }
 
             UsageText = getHidUsageText(ValueCaps->UsagePage, Usage);
-            printf("Value:\t\t[%s] 0x%x\n", UsageText, Value);
+            printf("%-*s: [%s] 0x%x\n", HIDE_ALIGN, "Value", UsageText, Value);
             if (UsageText != NULL) {
                 free(UsageText);
             }
@@ -791,7 +847,7 @@ DumpHidEvent(
                 UsageText =
                     ButtonCapState->UsageText[Usage - ButtonCapState->UsageMin];
 
-                printf("Button:\t\t%d (%s)\n", Usage, UsageText);
+                printf("%-*s: %d (%s)\n", HIDE_ALIGN, "Button", Usage, UsageText);
             }
         }
 

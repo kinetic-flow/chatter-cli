@@ -1,5 +1,8 @@
 #include "keyboard.h"
 
+#define KB_ALIGN 24
+#define KBE_ALIGN 12
+
 VOID
 DumpKeyboardEvent (
     _In_ PRAWKEYBOARD Keyboard
@@ -11,7 +14,7 @@ DumpKeyboard(
     )
 {
 
-    printf("dwType:\t\t\t0x%x ", Keyboard->dwType);
+    printf("%-*s: 0x%x ", KB_ALIGN, "dwType", Keyboard->dwType);
     if (Keyboard->dwType == 0x4) {
         printf("ENHANCED_101_OR_102_COMPATIBLE");
     } else if (Keyboard->dwType == 0x7) {
@@ -23,11 +26,15 @@ DumpKeyboard(
     }
     printf("\n");
 
-    printf("dwSubType:\t\t0x%x\n", Keyboard->dwSubType);
-    printf("dwKeyboardMode:\t\t%d\n", Keyboard->dwKeyboardMode);
-    printf("dwNumberOfFunctionKeys:\t%d\n", Keyboard->dwNumberOfFunctionKeys);
-    printf("dwNumberOfIndicators:\t%d\n", Keyboard->dwNumberOfIndicators);
-    printf("dwNumberOfKeysTotal:\t%d\n", Keyboard->dwNumberOfKeysTotal);
+    printf("%-*s: %d\n", KB_ALIGN, "dwSubType", Keyboard->dwSubType);
+    printf("%-*s: %d\n", KB_ALIGN,
+        "dwKeyboardMode", Keyboard->dwKeyboardMode);
+    printf("%-*s: %d\n", KB_ALIGN,
+        "dwNumberOfFunctionKeys", Keyboard->dwNumberOfFunctionKeys);
+    printf("%-*s: %d\n", KB_ALIGN,
+        "dwNumberOfIndicators", Keyboard->dwNumberOfIndicators);
+    printf("%-*s: %d\n", KB_ALIGN,
+        "dwNumberOfKeysTotal", Keyboard->dwNumberOfKeysTotal);
 }
 
 PREGISTERED_KEYBOARD_DEVICE_INFO
@@ -105,7 +112,7 @@ ProcessKeyboardEvent (
                 Device->KeyboardDeviceInfo->TimerList, MakeCode);
             PrintLogTimeStamp();
             if (0 < GetKeyNameText((LONG)MakeCode, KeyCode, ARRAYSIZE(KeyCode))) {
-                printf("Duration (%*S): %*d ms", 16, KeyCode, 6, TimeInMs);
+                printf("Duration (%-*S): %*d ms", 16, KeyCode, 6, TimeInMs);
             } else {
                 printf("Duration (MakeCode %d): %*d ms", MakeCode, 6, TimeInMs);
             }
@@ -128,7 +135,7 @@ DumpKeyboardEvent (
     ULONG MakeCode;
     WCHAR KeyCode[64];
 
-    printf("MakeCode:\t0x%x ", Keyboard->MakeCode);
+    printf("%-*s: 0x%x ", KBE_ALIGN, "MakeCode", Keyboard->MakeCode);
     if (Keyboard->MakeCode == KEYBOARD_OVERRUN_MAKE_CODE) {
         printf("KEYBOARD_OVERRUN_MAKE_CODE ");
     }
@@ -139,29 +146,27 @@ DumpKeyboardEvent (
     if (0 < GetKeyNameText((LONG)MakeCode, KeyCode, ARRAYSIZE(KeyCode))) {
         printf("%S ", KeyCode);
     }
-
     printf("\n");
 
-    if (LogConfig.Keyboard.Verbose) {
-        printf("Flags:\t\t0x%x ", Keyboard->Flags);
-        if ((Keyboard->Flags & RI_KEY_BREAK) == 0) { // RI_KEY_MAKE
-            printf("RI_KEY_MAKE ");
-        }
-        if (Keyboard->Flags & RI_KEY_BREAK) {
-            printf("RI_KEY_BREAK ");
-        }
-        if (Keyboard->Flags & RI_KEY_E0) {
-            printf("RI_KEY_E0 ");
-        }
-        if (Keyboard->Flags & RI_KEY_E1) {
-            printf("RI_KEY_E1 ");
-        }
-        printf("\n");
+    printf("%-*s: 0x%x ", KBE_ALIGN, "Flags", Keyboard->Flags);
+    if ((Keyboard->Flags & RI_KEY_BREAK) == 0) { // RI_KEY_MAKE
+        printf("RI_KEY_MAKE ");
     }
+    if (Keyboard->Flags & RI_KEY_BREAK) {
+        printf("RI_KEY_BREAK ");
+    }
+    if (Keyboard->Flags & RI_KEY_E0) {
+        printf("RI_KEY_E0 ");
+    }
+    if (Keyboard->Flags & RI_KEY_E1) {
+        printf("RI_KEY_E1 ");
+    }
+    printf("\n");
 
-    printf("VKey:\t\t0x%x %S\n", Keyboard->VKey, GetVKeyText(Keyboard->VKey));
-    
-    printf("Message:\t0x%x ", Keyboard->Message);
+    printf("%-*s: 0x%x %S\n", KBE_ALIGN,
+        "VKey", Keyboard->VKey, GetVKeyText(Keyboard->VKey));
+
+    printf("%-*s: 0x%x ", KBE_ALIGN, "Message", Keyboard->Message);
     if (Keyboard->Message == WM_ACTIVATE) {
         printf("WM_ACTIVATE ");
     } else if (Keyboard->Message == WM_APPCOMMAND) {
@@ -191,7 +196,6 @@ DumpKeyboardEvent (
     }
     printf("\n");
 
-    if (LogConfig.Keyboard.Verbose) {
-        printf("ExtraInformation:\t0x%x\n", Keyboard->ExtraInformation);
-    }
+    printf("%-*s: 0x%x\n", KBE_ALIGN,
+        "ExtraInfo", Keyboard->ExtraInformation);
 }

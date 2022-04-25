@@ -14,10 +14,9 @@ typedef struct _LOG_CONFIG {
     struct {
         BOOLEAN Movement;
         BOOLEAN ButtonClicks;
-        BOOLEAN Verbose;
     } Mouse;
     struct {
-        BOOLEAN Verbose;
+        PVOID Reserved;
     } Keyboard;
     struct {
         BOOLEAN UsageText;
