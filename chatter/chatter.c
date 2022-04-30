@@ -204,7 +204,7 @@ main(
     LogConfig.VerboseError = ArgVerbose;
     LogConfig.Mouse.Movement = ArgCursor;
     LogConfig.Mouse.ButtonClicks = TRUE;
-    LogConfig.Hid.UsageText = ArgVerbose;
+    LogConfig.Hid.UsageTextAll = ArgVerbose;
 
     InitTimerSupport();
     InitializeRegisteredList();

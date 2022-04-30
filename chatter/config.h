@@ -19,7 +19,7 @@ typedef struct _LOG_CONFIG {
         PVOID Reserved;
     } Keyboard;
     struct {
-        BOOLEAN UsageText;
+        BOOLEAN UsageTextAll;
     } Hid;
 } LOG_CONFIG, *PLOG_CONFIG;
 
