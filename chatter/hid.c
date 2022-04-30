@@ -852,17 +852,13 @@ ProcessHidEvent(
                         UsageText = ValueCapState->UsageText[UsageCount];
                         PrintLogTimeStamp();
                         printf(
-                            "Duration (%-*s): %*d ms",
-                            16, UsageText,
-                            6, TimeInMs);
-
-                        printf(
-                            " (%S)",
-                            GetDpadDirectionString(
+                            "Duration (%-*s %-*S): %*d ms",
+                            13, UsageText,
+                            2, GetDpadDirectionString(
                                 ValueCaps,
                                 (LONG)ValueCapState->PreviousState[UsageCount]
-                                )
-                            );
+                                ),
+                            6, TimeInMs);
 
                         if (TimeInMs <= AppConfig.GlitchDurationInMs) {
                             printf("\t***GLITCH!!***");
@@ -1130,23 +1126,23 @@ GetDpadDirectionString(
     Direction = GetNormalizedDpadValue(ValueCaps, Value);
     switch (Direction) {
         case DPAD_DIRECTION_UP:
-            return L"UP";
+            return L"N";
         case DPAD_DIRECTION_UP_RIGHT:
-            return L"UP RIGHT";
+            return L"NE";
         case DPAD_DIRECTION_RIGHT:
-            return L"RIGHT";
+            return L"E";
         case DPAD_DIRECTION_DOWN_RIGHT:
-            return L"DOWN RIGHT";
+            return L"SE";
         case DPAD_DIRECTION_DOWN:
-            return L"DOWN";
+            return L"S";
         case DPAD_DIRECTION_DOWN_LEFT:
-            return L"DOWN LEFT";
+            return L"SW";
         case DPAD_DIRECTION_LEFT:
-            return L"LEFT";
+            return L"W";
         case DPAD_DIRECTION_UP_LEFT:
-            return L"UP LEFT";
+            return L"NW";
         case DPAD_DIRECTION_NEUTRAL:
         default:
-            return L"NEUTRAL";
+            return L"x";
     }
 }
