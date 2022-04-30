@@ -381,6 +381,8 @@ RegisterHidDevice(
     NTSTATUS Status;
     USHORT Length;
     USAGE Usage;
+    USHORT NumValues;
+    PHIDP_VALUE_CAPS ValueCaps;
 
     HidInfo = malloc(sizeof(*HidInfo));
     if (HidInfo == NULL) {
@@ -516,6 +518,23 @@ RegisterHidDevice(
                 InstancePath,
                 GetLastError());
             goto Exit;
+        }
+
+        // process each value cap
+        // (which could be a range of values or a single value)
+        for (Count = 0; Count < Length; Count += 1) {
+            ValueCaps = &HidInfo->ValueCaps[Count];
+            if (HidInValueCaps->IsRange) {
+                NumValues =
+                    (ValueCaps->Range.UsageMax - ValueCaps->Range.UsageMin + 1);
+            } else {
+                if (IsUsageDpad(
+                        ValueCaps->UsagePage, ValueCaps->NotRange.Usage)) {
+                    
+                    
+                }
+            }
+            
         }
     }
 
