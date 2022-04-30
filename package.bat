@@ -12,7 +12,8 @@ copy /y chatter\Release\chatter.exe dist\chatter
 copy /y chatter\Release\chatter.pdb dist\chatter\pdb
 copy /y LICENSE dist\chatter\LICENSE.txt
 copy /y README.md dist\chatter
-git archive --format zip --output .\dist\chatter\src\main.zip main
+git fetch -p
+git archive --format zip --output .\dist\chatter\src\main.zip origin/main
 pushd dist
 7z a -tzip -r chatter-%datetime%.zip chatter
 popd
