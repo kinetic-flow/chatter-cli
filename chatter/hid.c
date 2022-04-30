@@ -14,6 +14,24 @@ DumpHidEvent(
     _In_ PRAWHID Hid
     );
 
+BOOLEAN
+IsUsageDpad(
+    _In_ USAGE UsagePage,
+    _In_ USAGE Usage
+    );
+
+DPAD_DIRECTION
+GetNormalizedDpadValue(
+    _In_ PHIDP_VALUE_CAPS ValueCaps,
+    _In_ LONG Value
+    );
+
+PWSTR
+GetDpadDirectionString(
+    _In_ PHIDP_VALUE_CAPS ValueCaps,
+    _In_ LONG Value
+    );
+
 VOID
 DumpHid(
     _In_ PRID_DEVICE_INFO_HID Hid,
@@ -363,6 +381,8 @@ RegisterHidDevice(
     NTSTATUS Status;
     USHORT Length;
     USAGE Usage;
+    USHORT NumValues = 0;
+    PVALUE_CAP_STATE ValueCaps;
 
     HidInfo = malloc(sizeof(*HidInfo));
     if (HidInfo == NULL) {
@@ -411,7 +431,7 @@ RegisterHidDevice(
 
         Length = HidCaps.NumberInputButtonCaps;
         Status = HidP_GetButtonCaps(
-            HidP_Input, 
+            HidP_Input,
             HidInfo->ButtonCaps,
             &Length,
             HidInfo->PreparsedData
@@ -449,12 +469,24 @@ RegisterHidDevice(
 
             // array of booleans to keep track of state
             Buttons->PreviousState = malloc(sizeof(BOOLEAN) * Buttons->Length);
+            if (Buttons->PreviousState == NULL) {
+                FailFast(E_OUTOFMEMORY);
+                goto Exit;
+            }
             ZeroMemory(Buttons->PreviousState, sizeof(BOOLEAN) * Buttons->Length);
             Buttons->CurrentState = malloc(sizeof(BOOLEAN) * Buttons->Length);
+            if (Buttons->CurrentState == NULL) {
+                FailFast(E_OUTOFMEMORY);
+                goto Exit;
+            }
             ZeroMemory(Buttons->CurrentState, sizeof(BOOLEAN) * Buttons->Length);
 
             // array of strings for each button
             Buttons->UsageText = malloc(sizeof(PWSTR) * Buttons->Length);
+            if (Buttons->UsageText == NULL) {
+                FailFast(E_OUTOFMEMORY);
+                goto Exit;
+            }
             
             // get text for each button
             if (HidInfo->ButtonCaps[Count].IsRange) {
@@ -477,16 +509,22 @@ RegisterHidDevice(
     // input value caps
     if (0 < HidCaps.NumberInputValueCaps) {
         HidInfo->ValueCaps = malloc(
-            sizeof(HidInfo->ButtonCaps[0]) * HidCaps.NumberInputValueCaps);
-
+            sizeof(HidInfo->ValueCaps[0]) * HidCaps.NumberInputValueCaps);
         if (HidInfo->ValueCaps == NULL) {
+            FailFast(E_OUTOFMEMORY);
+            goto Exit;
+        }
+
+        HidInfo->ValueCapStates = malloc(
+            sizeof(HidInfo->ValueCapStates[0]) * HidCaps.NumberInputValueCaps);
+        if (HidInfo->ValueCapStates == NULL) {
             FailFast(E_OUTOFMEMORY);
             goto Exit;
         }
 
         Length = HidCaps.NumberInputValueCaps;
         Status = HidP_GetValueCaps(
-            HidP_Input, 
+            HidP_Input,
             HidInfo->ValueCaps,
             &Length,
             HidInfo->PreparsedData
@@ -498,6 +536,65 @@ RegisterHidDevice(
                 InstancePath,
                 GetLastError());
             goto Exit;
+        }
+
+        // process each value cap
+        // (which could be a range of values or a single value)
+        for (Count = 0; Count < Length; Count += 1) {
+            HidInfo->ValueCapStates[Count] = malloc(sizeof(VALUE_CAP_STATE));
+            if (HidInfo->ValueCapStates[Count] == NULL) {
+                FailFast(E_OUTOFMEMORY);
+                goto Exit;
+            }
+            ValueCaps = HidInfo->ValueCapStates[Count];
+
+            if (HidInfo->ValueCaps[Count].IsRange) {
+                ValueCaps->Length =
+                    HidInfo->ValueCaps[Count].Range.UsageMax -
+                    HidInfo->ValueCaps[Count].Range.UsageMin +
+                    1;
+                ValueCaps->UsageMin = HidInfo->ValueCaps[Count].Range.UsageMin;
+            } else {
+                ValueCaps->Length = 1;
+                ValueCaps->UsageMin = HidInfo->ValueCaps[Count].NotRange.Usage;
+            }
+
+            // array of ULONGs to keep track of state
+            ValueCaps->PreviousState = malloc(sizeof(BOOLEAN) * ValueCaps->Length);
+            if (ValueCaps->PreviousState == NULL) {
+                FailFast(E_OUTOFMEMORY);
+                goto Exit;
+            }
+            ZeroMemory(ValueCaps->PreviousState, sizeof(BOOLEAN) * ValueCaps->Length);
+            ValueCaps->CurrentState = malloc(sizeof(BOOLEAN) * ValueCaps->Length);
+            if (ValueCaps->CurrentState == NULL) {
+                FailFast(E_OUTOFMEMORY);
+                goto Exit;
+            }
+            ZeroMemory(ValueCaps->CurrentState, sizeof(BOOLEAN) * ValueCaps->Length);
+
+            // array of strings for each value
+            ValueCaps->UsageText = malloc(sizeof(PWSTR) * ValueCaps->Length);
+            if (ValueCaps->UsageText == NULL) {
+                FailFast(E_OUTOFMEMORY);
+                goto Exit;
+            }
+
+            // get text for each value
+            if (HidInfo->ValueCaps[Count].IsRange) {
+                for (Usage = 0;
+                    Usage < ValueCaps->Length;
+                    Usage += 1) {
+
+                    ValueCaps->UsageText[Usage] = getHidUsageText(
+                        HidInfo->ValueCaps[Count].UsagePage,
+                        (Usage + ValueCaps->UsageMin));
+                }
+            } else {
+                ValueCaps->UsageText[0] = getHidUsageText(
+                    HidInfo->ValueCaps[Count].UsagePage,
+                    ValueCaps->UsageMin);
+            }
         }
     }
 
@@ -562,6 +659,35 @@ Exit:
 }
 
 VOID
+FreeValueCapState(
+    _In_ _Frees_ptr_ PVALUE_CAP_STATE ValueCapState
+    )
+{
+    UINT Count;
+
+    // free the value array
+    if (ValueCapState->PreviousState != NULL) {
+        free(ValueCapState->PreviousState);
+        ValueCapState->PreviousState = NULL;
+    }
+    if (ValueCapState->CurrentState != NULL) {
+        free(ValueCapState->CurrentState);
+        ValueCapState->CurrentState = NULL;
+    }
+    if (ValueCapState->UsageText != NULL) {
+        // free the strings
+        for (Count = 0; Count < ValueCapState->Length; Count += 1) {
+            free(ValueCapState->UsageText[Count]);
+            ValueCapState->UsageText[Count] = NULL;
+        }
+        // free the array of pointers to strings
+        free(ValueCapState->UsageText);
+        ValueCapState->UsageText = NULL;
+    }
+    free(ValueCapState);
+}
+
+VOID
 FreeButtonCapState(
     _In_ _Frees_ptr_ PBUTTON_CAP_STATE ButtonCapState
     )
@@ -610,6 +736,19 @@ FreeRegisteredHidDevice(
         HidDeviceInfo->ButtonCaps = NULL;
     }
 
+    if (HidDeviceInfo->ValueCapStates != NULL) {
+        // free the contents of the array
+        for (Count = 0;
+            Count < HidDeviceInfo->HidCaps.NumberInputValueCaps;
+            Count += 1) {
+            FreeValueCapState(HidDeviceInfo->ValueCapStates[Count]);
+            HidDeviceInfo->ValueCapStates[Count] = NULL;
+        }
+        // free the array of pointers
+        free(HidDeviceInfo->ValueCapStates);
+        HidDeviceInfo->ValueCapStates = NULL;
+    }
+
     if (HidDeviceInfo->ButtonCapStates != NULL) {
         // free the contents of the array
         for (Count = 0;
@@ -643,12 +782,16 @@ ProcessHidEvent(
     UINT ButtonCount;
     PHIDP_BUTTON_CAPS ButtonCaps = NULL;
     PBUTTON_CAP_STATE ButtonCapState = NULL;
+    PHIDP_VALUE_CAPS ValueCaps = NULL;
+    PVALUE_CAP_STATE ValueCapState = NULL;
     UINT Count;
     NTSTATUS Status;
     USAGE Usage = 0;
     PUSAGE Usages = NULL;
     UINT UsageCount;
     PCHAR UsageText = NULL;
+    ULONG Value;
+    UINT ValueCount;
     ULONG Identifier;
     UINT TimeInMs;
 
@@ -658,6 +801,83 @@ ProcessHidEvent(
 
     if (!LogConfig.LogChatter) {
         return;
+    }
+
+    for (Count = 0;
+        Count < Device->HidDeviceInfo->HidCaps.NumberInputValueCaps;
+        Count += 1) {
+
+        ValueCaps = &Device->HidDeviceInfo->ValueCaps[Count];
+        ValueCapState = Device->HidDeviceInfo->ValueCapStates[Count];
+        if (ValueCapState->Length <= 0) {
+            continue;
+        }
+
+        ValueCount = ValueCapState->Length;
+        for (UsageCount = 0; UsageCount < ValueCount; UsageCount += 1) {
+            if (ValueCaps->IsRange) {
+                Usage = ValueCaps->Range.UsageMin + UsageCount;
+            } else {
+                Usage = ValueCaps->NotRange.Usage;
+            }
+
+            Status = HidP_GetUsageValue(
+                HidP_Input,
+                ValueCaps->UsagePage,
+                ValueCaps->LinkCollection,
+                Usage,
+                &Value,
+                Device->HidDeviceInfo->PreparsedData,
+                Hid->bRawData,
+                Hid->dwSizeHid);
+
+            if (Status != HIDP_STATUS_SUCCESS) {
+                continue;
+            }
+
+            if (IsUsageDpad(ValueCaps->UsagePage, Usage)) {
+                ValueCapState->CurrentState[UsageCount] = Value;
+
+                Identifier = (Count << 16) || (Usage);
+
+                // value changed
+                if (ValueCapState->PreviousState[UsageCount] !=
+                    ValueCapState->CurrentState[UsageCount]) {
+
+                    // stop the previous timer if one exists
+                    TimeInMs = StopTimerAndGetMsElapsed(
+                        Device->HidDeviceInfo->TimerList, Identifier);
+
+                    if (TimeInMs != MAXUINT) {
+                        UsageText = ValueCapState->UsageText[UsageCount];
+                        PrintLogTimeStamp();
+                        printf(
+                            "Duration (%-*s %-*S): %*d ms",
+                            13, UsageText,
+                            2, GetDpadDirectionString(
+                                ValueCaps,
+                                (LONG)ValueCapState->PreviousState[UsageCount]
+                                ),
+                            6, TimeInMs);
+
+                        if (TimeInMs <= AppConfig.GlitchDurationInMs) {
+                            printf("\t***GLITCH!!***");
+                        }
+                        printf("\n");
+                    }
+
+                    // start a new timer
+                    if (ValueCapState->CurrentState[UsageCount] != DPAD_DIRECTION_NEUTRAL) {
+                        StartTimer(
+                            Device->HidDeviceInfo->TimerList, Identifier, FALSE);
+                    }
+                }
+
+                // update the previous value for next time
+                ValueCapState->PreviousState[UsageCount] =
+                    ValueCapState->CurrentState[UsageCount];
+            }
+        }
     }
 
     for (Count = 0;
@@ -755,9 +975,10 @@ DumpHidEvent(
     _In_ PRAWHID Hid
     )
 {
-    PHIDP_BUTTON_CAPS ButtonCaps;
-    PBUTTON_CAP_STATE ButtonCapState;
-    PHIDP_VALUE_CAPS ValueCaps;
+    PHIDP_BUTTON_CAPS ButtonCaps = NULL;
+    PBUTTON_CAP_STATE ButtonCapState = NULL;
+    PHIDP_VALUE_CAPS ValueCaps = NULL;
+    PVALUE_CAP_STATE ValueCapState = NULL;
     UINT ButtonCount;
     UINT ValueCount;
     UINT Count;
@@ -773,18 +994,12 @@ DumpHidEvent(
         Count += 1) {
 
         ValueCaps = &Device->HidDeviceInfo->ValueCaps[Count];
-
-        if (ValueCaps->IsRange) {
-            ValueCount =
-                ValueCaps->Range.UsageMax - ValueCaps->Range.UsageMin + 1;
-        } else {
-            ValueCount = 1;
-        }
-
-        if (ValueCount <= 0) {
+        ValueCapState = Device->HidDeviceInfo->ValueCapStates[Count];
+        if (ValueCapState->Length <= 0) {
             continue;
         }
 
+        ValueCount = ValueCapState->Length;
         for (UsageCount = 0; UsageCount < ValueCount; UsageCount += 1) {
             if (ValueCaps->IsRange) {
                 Usage = ValueCaps->Range.UsageMin + UsageCount;
@@ -802,14 +1017,16 @@ DumpHidEvent(
                 Hid->bRawData,
                 Hid->dwSizeHid);
 
-            if (Status != HIDP_STATUS_SUCCESS) {
-                continue;
-            }
+            if (Status == HIDP_STATUS_SUCCESS) {
+                UsageText =
+                    ValueCapState->UsageText[Usage - ValueCapState->UsageMin];
 
-            UsageText = getHidUsageText(ValueCaps->UsagePage, Usage);
-            printf("%-*s: [%s] 0x%x\n", HIDE_ALIGN, "Value", UsageText, Value);
-            if (UsageText != NULL) {
-                free(UsageText);
+                printf("%-*s: [%s] 0x%x", HIDE_ALIGN, "Value", UsageText, Value);
+                if (IsUsageDpad(ValueCaps->UsagePage, Usage)) {
+                    printf(" (%S)", GetDpadDirectionString(ValueCaps, (LONG)Value));
+                }
+
+                printf("\n");
             }
         }
     }
@@ -853,5 +1070,79 @@ DumpHidEvent(
         }
 
         free(Usages);
+    }
+}
+
+BOOLEAN
+IsUsageDpad(
+    _In_ USAGE UsagePage,
+    _In_ USAGE Usage
+    )
+{
+    // 0x01: Generic Desktop
+    // 0x39: Hat switch
+    return (UsagePage == 0x1 && Usage == 0x39);
+}
+
+DPAD_DIRECTION
+GetNormalizedDpadValue(
+    _In_ PHIDP_VALUE_CAPS ValueCaps,
+    _In_ LONG Value
+    )
+{
+    ULONG ValueNormalized;
+
+    if (Value < ValueCaps->LogicalMin  || ValueCaps->LogicalMax < Value) {
+        // per HID spec, a value outside the logical range is neutral
+        return DPAD_DIRECTION_NEUTRAL;
+
+    } else {
+        // logical min corresponds to UP, each value increments clockwise
+        // here, we only support 4-way and 8-way dpads
+        ValueNormalized = Value - ValueCaps->LogicalMin;
+
+        // turn 4-way to 8-way
+        if ((ValueCaps->LogicalMax - ValueCaps->LogicalMin + 1) == 4) {
+            ValueNormalized = ValueNormalized * 2;
+        }
+
+        ValueNormalized += 1;
+        if (DPAD_DIRECTION_MAX <= ValueNormalized) {
+            ValueNormalized = DPAD_DIRECTION_NEUTRAL;
+        }
+
+        return (DPAD_DIRECTION)ValueNormalized;
+    }
+}
+
+PWSTR
+GetDpadDirectionString(
+    _In_ PHIDP_VALUE_CAPS ValueCaps,
+    _In_ LONG Value
+    )
+{
+    DPAD_DIRECTION Direction;
+
+    Direction = GetNormalizedDpadValue(ValueCaps, Value);
+    switch (Direction) {
+        case DPAD_DIRECTION_UP:
+            return L"N";
+        case DPAD_DIRECTION_UP_RIGHT:
+            return L"NE";
+        case DPAD_DIRECTION_RIGHT:
+            return L"E";
+        case DPAD_DIRECTION_DOWN_RIGHT:
+            return L"SE";
+        case DPAD_DIRECTION_DOWN:
+            return L"S";
+        case DPAD_DIRECTION_DOWN_LEFT:
+            return L"SW";
+        case DPAD_DIRECTION_LEFT:
+            return L"W";
+        case DPAD_DIRECTION_UP_LEFT:
+            return L"NW";
+        case DPAD_DIRECTION_NEUTRAL:
+        default:
+            return L"x";
     }
 }

@@ -12,6 +12,16 @@ struct _BUTTON_CAP_STATE {
     _Field_size_full_(Length) PCHAR *UsageText;
 };
 
+struct _VALUE_CAP_STATE {
+    // Length is 1 for NotRange, UsageMax-Min+1 for Range
+    UINT Length;
+    // equals Usage in NotRange, UsageMin for Range
+    USAGE UsageMin;
+    _Field_size_full_(Length) PULONG PreviousState;
+    _Field_size_full_(Length) PULONG CurrentState;
+    _Field_size_full_(Length) PCHAR *UsageText;
+};
+
 struct _REGISTERED_HID_DEVICE_INFO {
     WCHAR Manufacturer[128];
     WCHAR Product[128];
@@ -22,6 +32,7 @@ struct _REGISTERED_HID_DEVICE_INFO {
     _Field_size_full_(HidCaps.NumberInputButtonCaps) PBUTTON_CAP_STATE *ButtonCapStates;
     
     _Field_size_full_(HidCaps.NumberInputValueCaps) PHIDP_VALUE_CAPS ValueCaps;
+    _Field_size_full_(HidCaps.NumberInputValueCaps) PVALUE_CAP_STATE *ValueCapStates;
 
     PHIDP_PREPARSED_DATA PreparsedData;
     list_t *TimerList;
