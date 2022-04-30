@@ -12,6 +12,13 @@ struct _BUTTON_CAP_STATE {
     _Field_size_full_(Length) PCHAR *UsageText;
 };
 
+struct _DPAD_CAP_STATE {
+    USHORT NthInputValueCap;
+    USHORT NthUsage;
+    DPAD_DIRECTION PreviousState;
+    DPAD_DIRECTION CurrentState;
+};
+
 struct _REGISTERED_HID_DEVICE_INFO {
     WCHAR Manufacturer[128];
     WCHAR Product[128];
@@ -22,6 +29,9 @@ struct _REGISTERED_HID_DEVICE_INFO {
     _Field_size_full_(HidCaps.NumberInputButtonCaps) PBUTTON_CAP_STATE *ButtonCapStates;
     
     _Field_size_full_(HidCaps.NumberInputValueCaps) PHIDP_VALUE_CAPS ValueCaps;
+
+    USHORT DpadCount;
+    _Field_size_full_(DpadCount) DPAD_CAP_STATE DpadCaps;
 
     PHIDP_PREPARSED_DATA PreparsedData;
     list_t *TimerList;

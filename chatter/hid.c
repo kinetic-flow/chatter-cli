@@ -14,6 +14,24 @@ DumpHidEvent(
     _In_ PRAWHID Hid
     );
 
+BOOLEAN
+IsUsageDpad(
+    _In_ USAGE UsagePage,
+    _In_ USAGE Usage
+    );
+
+DPAD_DIRECTION
+GetNormalizedDpadValue(
+    _In_ PHIDP_VALUE_CAPS ValueCaps,
+    _In_ LONG Value
+    );
+
+PWSTR
+GetDpadDirectionString(
+    _In_ PHIDP_VALUE_CAPS ValueCaps,
+    _In_ LONG Value
+    );
+
 VOID
 DumpHid(
     _In_ PRID_DEVICE_INFO_HID Hid,
@@ -807,7 +825,11 @@ DumpHidEvent(
             }
 
             UsageText = getHidUsageText(ValueCaps->UsagePage, Usage);
-            printf("%-*s: [%s] 0x%x\n", HIDE_ALIGN, "Value", UsageText, Value);
+            printf("%-*s: [%s] 0x%x", HIDE_ALIGN, "Value", UsageText, Value);
+            if (IsUsageDpad(ValueCaps->UsagePage, Usage)) {
+                printf(" (%S)", GetDpadDirectionString(ValueCaps, (LONG)Value));
+            }
+            printf("\n");
             if (UsageText != NULL) {
                 free(UsageText);
             }
@@ -853,5 +875,79 @@ DumpHidEvent(
         }
 
         free(Usages);
+    }
+}
+
+BOOLEAN
+IsUsageDpad(
+    _In_ USAGE UsagePage,
+    _In_ USAGE Usage
+    )
+{
+    // 0x01: Generic Desktop
+    // 0x39: Hat switch
+    return (UsagePage == 0x1 && Usage == 0x39);
+}
+
+DPAD_DIRECTION
+GetNormalizedDpadValue(
+    _In_ PHIDP_VALUE_CAPS ValueCaps,
+    _In_ LONG Value
+    )
+{
+    ULONG ValueNormalized;
+
+    if (Value < ValueCaps->LogicalMin  || ValueCaps->LogicalMax < Value) {
+        // per HID spec, a value outside the logical range is neutral
+        return DPAD_DIRECTION_NEUTRAL;
+
+    } else {
+        // logical min corresponds to UP, each value increments clockwise
+        // here, we only support 4-way and 8-way dpads
+        ValueNormalized = Value - ValueCaps->LogicalMin;
+
+        // turn 4-way to 8-way
+        if ((ValueCaps->LogicalMax - ValueCaps->LogicalMin + 1) == 4) {
+            ValueNormalized = ValueNormalized * 2;
+        }
+
+        ValueNormalized += 1;
+        if (DPAD_DIRECTION_MAX <= ValueNormalized) {
+            ValueNormalized = DPAD_DIRECTION_NEUTRAL;
+        }
+
+        return (DPAD_DIRECTION)ValueNormalized;
+    }
+}
+
+PWSTR
+GetDpadDirectionString(
+    _In_ PHIDP_VALUE_CAPS ValueCaps,
+    _In_ LONG Value
+    )
+{
+    DPAD_DIRECTION Direction;
+
+    Direction = GetNormalizedDpadValue(ValueCaps, Value);
+    switch (Direction) {
+        case DPAD_DIRECTION_UP:
+            return L"UP";
+        case DPAD_DIRECTION_UP_RIGHT:
+            return L"UP RIGHT";
+        case DPAD_DIRECTION_RIGHT:
+            return L"RIGHT";
+        case DPAD_DIRECTION_DOWN_RIGHT:
+            return L"DOWN RIGHT";
+        case DPAD_DIRECTION_DOWN:
+            return L"DOWN";
+        case DPAD_DIRECTION_DOWN_LEFT:
+            return L"DOWN LEFT";
+        case DPAD_DIRECTION_LEFT:
+            return L"LEFT";
+        case DPAD_DIRECTION_UP_LEFT:
+            return L"UP LEFT";
+        case DPAD_DIRECTION_NEUTRAL:
+        default:
+            return L"NEUTRAL";
     }
 }
