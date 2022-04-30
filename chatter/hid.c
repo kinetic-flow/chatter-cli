@@ -27,9 +27,14 @@ GetNormalizedDpadValue(
     );
 
 PWSTR
-GetDpadDirectionString(
+GetDpadValueString(
     _In_ PHIDP_VALUE_CAPS ValueCaps,
     _In_ LONG Value
+    );
+
+PWSTR
+GetDpadDirectionString(
+    _In_ DPAD_DIRECTION Direction
     );
 
 VOID
@@ -39,7 +44,9 @@ DumpHid(
     )
 {
     PHIDP_BUTTON_CAPS ButtonCaps;
+    PBUTTON_CAP_STATE ButtonCapState;
     PHIDP_VALUE_CAPS ValueCaps;
+    PVALUE_CAP_STATE ValueCapState;
     PHIDP_CAPS Caps;
     UINT Count;
     PCHAR UsageText;
@@ -104,6 +111,7 @@ DumpHid(
         printf("---\n");
 
         ButtonCaps = &HidInfo->ButtonCaps[Count];
+        ButtonCapState = HidInfo->ButtonCapStates[Count];
 
         printf("%-*s: 0x%x\n", HID_ALIGN,
             "ButtonCaps UsagePage", ButtonCaps->UsagePage);
@@ -145,24 +153,19 @@ DumpHid(
                 "ButtonCaps Usage",
                 ButtonCaps->Range.UsageMin, ButtonCaps->Range.UsageMax);
 
-            if (LogConfig.Hid.UsageText) {
+            if (LogConfig.Hid.UsageTextAll) {
                 PrintAll = TRUE;
             } else if ((ButtonCaps->Range.UsageMax - ButtonCaps->Range.UsageMin) < 63) {
                 PrintAll = TRUE;
             } else {
                 PrintAll = FALSE;
             }
+
             if (PrintAll) {
                 printf("%-*s: ", HID_ALIGN, "ButtonCaps Usage Text");
-                for (Usage = ButtonCaps->Range.UsageMin;
-                    Usage <= ButtonCaps->Range.UsageMax;
-                    Usage += 1) {
-                    UsageText = getHidUsageText(ButtonCaps->UsagePage, Usage);
-                    printf("%s", UsageText);
-                    if (UsageText != NULL) {
-                        free(UsageText);
-                    }
-                    if (Usage != ButtonCaps->Range.UsageMax) {
+                for (Usage = 0; Usage < ButtonCapState->Length; Usage += 1) {
+                    printf("%s", ButtonCapState->UsageText[Usage]);
+                    if (Usage != ButtonCapState->Length - 1) {
                         printf(", ");
                     }
                 }
@@ -187,15 +190,8 @@ DumpHid(
             printf("%-*s: %d\n", HID_ALIGN,
                 "ButtonCaps Usage", ButtonCaps->NotRange.Usage);
 
-            if (LogConfig.Hid.UsageText) {
-                UsageText = getHidUsageText(
-                    ButtonCaps->UsagePage, ButtonCaps->NotRange.Usage);
-                if (UsageText != NULL) {
-                    printf("%-*s: %s\n", HID_ALIGN,
-                        "ButtonCaps Usage Text", UsageText);
-                    free(UsageText);
-                }
-            }
+            printf("%-*s: %s\n", HID_ALIGN,
+                "ButtonCaps Usage Text", ButtonCapState->UsageText[0]);
 
             printf("%-*s: %d\n", HID_ALIGN,
                 "ButtonCaps StringIndex",
@@ -212,6 +208,7 @@ DumpHid(
     for (Count = 0; Count < Caps->NumberInputValueCaps; Count += 1) {
         printf("---\n");
         ValueCaps = &HidInfo->ValueCaps[Count];
+        ValueCapState = HidInfo->ValueCapStates[Count];
 
         printf("%-*s: 0x%x\n", HID_ALIGN,
             "ValueCaps UsagePage", ValueCaps->UsagePage);
@@ -267,22 +264,17 @@ DumpHid(
                 "ValueCaps UsageMinMax",
                 ValueCaps->Range.UsageMin, ValueCaps->Range.UsageMax);
 
-            if (LogConfig.Hid.UsageText) {
-                printf("%-*s: ", HID_ALIGN, "ValueCaps Usage Text");
-                for (Usage = ValueCaps->Range.UsageMin;
-                    Usage <= ValueCaps->Range.UsageMax;
-                    Usage += 1) {
-                    UsageText = getHidUsageText(ValueCaps->UsagePage, Usage);
-                    printf("%s", UsageText);
-                    if (UsageText != NULL) {
-                        free(UsageText);
-                    }
-                    if (Usage != ValueCaps->Range.UsageMax) {
-                        printf(", ");
-                    }
+            // usage text
+            printf("%-*s: ", HID_ALIGN, "ValueCaps Usage Text");
+            for (Usage = 0;
+                Usage < ValueCapState->Length;
+                Usage += 1) {
+                printf("%s", ValueCapState->UsageText[Usage]);
+                if (Usage != ValueCapState->Length - 1) {
+                    printf(", ");
                 }
-                printf("\n");
             }
+            printf("\n");
 
             printf("%-*s: [%d, %d]\n", HID_ALIGN,
                 "ValueCaps StringMinMax",
@@ -297,16 +289,8 @@ DumpHid(
         } else {
             printf("%-*s: %d\n", HID_ALIGN,
                 "ValueCaps Usage", ValueCaps->NotRange.Usage);
-
-            if (LogConfig.Hid.UsageText) {
-                UsageText = getHidUsageText(ValueCaps->UsagePage, ValueCaps->NotRange.Usage);
-                if (UsageText != NULL) {
-                    printf("%-*s: %s\n", HID_ALIGN,
-                        "ValueCaps Usage Text", UsageText);
-                    free(UsageText);
-                }
-            }
-
+            printf("%-*s: %s\n", HID_ALIGN,
+                "ValueCaps Usage Text", ValueCapState->UsageText[0]);
             printf("%-*s: %d\n", HID_ALIGN,
                 "ValueCaps StringIndex",
                 ValueCaps->NotRange.StringIndex);
@@ -415,21 +399,19 @@ RegisterHidDevice(
 
     // button caps
     if (0 < HidCaps.NumberInputButtonCaps) {
-        HidInfo->ButtonCaps = malloc(
-            sizeof(HidInfo->ButtonCaps[0]) * HidCaps.NumberInputButtonCaps);
+        Length = HidCaps.NumberInputButtonCaps;
+        HidInfo->ButtonCaps = malloc(sizeof(HidInfo->ButtonCaps[0]) * Length);
         if (HidInfo->ButtonCaps == NULL) {
             FailFast(E_OUTOFMEMORY);
             goto Exit;
         }
 
-        HidInfo->ButtonCapStates = malloc(
-            sizeof(HidInfo->ButtonCapStates[0]) * HidCaps.NumberInputButtonCaps);
+        HidInfo->ButtonCapStates = malloc(sizeof(HidInfo->ButtonCapStates[0]) * Length);
         if (HidInfo->ButtonCapStates == NULL) {
             FailFast(E_OUTOFMEMORY);
             goto Exit;
         }
 
-        Length = HidCaps.NumberInputButtonCaps;
         Status = HidP_GetButtonCaps(
             HidP_Input,
             HidInfo->ButtonCaps,
@@ -468,21 +450,28 @@ RegisterHidDevice(
             }
 
             // array of booleans to keep track of state
-            Buttons->PreviousState = malloc(sizeof(BOOLEAN) * Buttons->Length);
+            Buttons->PreviousState =
+                malloc(sizeof(Buttons->PreviousState[0]) * Buttons->Length);
             if (Buttons->PreviousState == NULL) {
                 FailFast(E_OUTOFMEMORY);
                 goto Exit;
             }
-            ZeroMemory(Buttons->PreviousState, sizeof(BOOLEAN) * Buttons->Length);
-            Buttons->CurrentState = malloc(sizeof(BOOLEAN) * Buttons->Length);
+            ZeroMemory(
+                Buttons->PreviousState,
+                sizeof(Buttons->PreviousState[0]) * Buttons->Length);
+
+            Buttons->CurrentState =
+                malloc(sizeof(Buttons->CurrentState[0]) * Buttons->Length);
             if (Buttons->CurrentState == NULL) {
                 FailFast(E_OUTOFMEMORY);
                 goto Exit;
             }
-            ZeroMemory(Buttons->CurrentState, sizeof(BOOLEAN) * Buttons->Length);
+            ZeroMemory(
+                Buttons->CurrentState,
+                sizeof(Buttons->CurrentState[0]) * Buttons->Length);
 
             // array of strings for each button
-            Buttons->UsageText = malloc(sizeof(PWSTR) * Buttons->Length);
+            Buttons->UsageText = malloc(sizeof(PCHAR) * Buttons->Length);
             if (Buttons->UsageText == NULL) {
                 FailFast(E_OUTOFMEMORY);
                 goto Exit;
@@ -508,21 +497,19 @@ RegisterHidDevice(
 
     // input value caps
     if (0 < HidCaps.NumberInputValueCaps) {
-        HidInfo->ValueCaps = malloc(
-            sizeof(HidInfo->ValueCaps[0]) * HidCaps.NumberInputValueCaps);
+        Length = HidCaps.NumberInputValueCaps;
+        HidInfo->ValueCaps = malloc(sizeof(HidInfo->ValueCaps[0]) * Length);
         if (HidInfo->ValueCaps == NULL) {
             FailFast(E_OUTOFMEMORY);
             goto Exit;
         }
 
-        HidInfo->ValueCapStates = malloc(
-            sizeof(HidInfo->ValueCapStates[0]) * HidCaps.NumberInputValueCaps);
+        HidInfo->ValueCapStates = malloc(sizeof(HidInfo->ValueCapStates[0]) * Length);
         if (HidInfo->ValueCapStates == NULL) {
             FailFast(E_OUTOFMEMORY);
             goto Exit;
         }
 
-        Length = HidCaps.NumberInputValueCaps;
         Status = HidP_GetValueCaps(
             HidP_Input,
             HidInfo->ValueCaps,
@@ -560,21 +547,28 @@ RegisterHidDevice(
             }
 
             // array of ULONGs to keep track of state
-            ValueCaps->PreviousState = malloc(sizeof(BOOLEAN) * ValueCaps->Length);
+            ValueCaps->PreviousState =
+                malloc(sizeof(ValueCaps->PreviousState[0]) * ValueCaps->Length);
             if (ValueCaps->PreviousState == NULL) {
                 FailFast(E_OUTOFMEMORY);
                 goto Exit;
             }
-            ZeroMemory(ValueCaps->PreviousState, sizeof(BOOLEAN) * ValueCaps->Length);
-            ValueCaps->CurrentState = malloc(sizeof(BOOLEAN) * ValueCaps->Length);
+            ZeroMemory(
+                ValueCaps->PreviousState,
+                sizeof(ValueCaps->PreviousState[0]) * ValueCaps->Length);
+
+            ValueCaps->CurrentState =
+                malloc(sizeof(ValueCaps->CurrentState[0]) * ValueCaps->Length);
             if (ValueCaps->CurrentState == NULL) {
                 FailFast(E_OUTOFMEMORY);
                 goto Exit;
             }
-            ZeroMemory(ValueCaps->CurrentState, sizeof(BOOLEAN) * ValueCaps->Length);
+            ZeroMemory(
+                ValueCaps->CurrentState,
+                sizeof(ValueCaps->CurrentState[0]) * ValueCaps->Length);
 
             // array of strings for each value
-            ValueCaps->UsageText = malloc(sizeof(PWSTR) * ValueCaps->Length);
+            ValueCaps->UsageText = malloc(sizeof(PCHAR) * ValueCaps->Length);
             if (ValueCaps->UsageText == NULL) {
                 FailFast(E_OUTOFMEMORY);
                 goto Exit;
@@ -791,7 +785,6 @@ ProcessHidEvent(
     UINT UsageCount;
     PCHAR UsageText = NULL;
     ULONG Value;
-    UINT ValueCount;
     ULONG Identifier;
     UINT TimeInMs;
 
@@ -813,8 +806,7 @@ ProcessHidEvent(
             continue;
         }
 
-        ValueCount = ValueCapState->Length;
-        for (UsageCount = 0; UsageCount < ValueCount; UsageCount += 1) {
+        for (UsageCount = 0; UsageCount < ValueCapState->Length; UsageCount += 1) {
             if (ValueCaps->IsRange) {
                 Usage = ValueCaps->Range.UsageMin + UsageCount;
             } else {
@@ -836,7 +828,8 @@ ProcessHidEvent(
             }
 
             if (IsUsageDpad(ValueCaps->UsagePage, Usage)) {
-                ValueCapState->CurrentState[UsageCount] = Value;
+                ValueCapState->CurrentState[UsageCount] =
+                    GetNormalizedDpadValue(ValueCaps, Value);
 
                 Identifier = (Count << 16) || (Usage);
 
@@ -854,10 +847,7 @@ ProcessHidEvent(
                         printf(
                             "Duration (%-*s %-*S): %*d ms",
                             13, UsageText,
-                            2, GetDpadDirectionString(
-                                ValueCaps,
-                                (LONG)ValueCapState->PreviousState[UsageCount]
-                                ),
+                            2, GetDpadDirectionString(ValueCapState->PreviousState[UsageCount]),
                             6, TimeInMs);
 
                         if (TimeInMs <= AppConfig.GlitchDurationInMs) {
@@ -1023,7 +1013,7 @@ DumpHidEvent(
 
                 printf("%-*s: [%s] 0x%x", HIDE_ALIGN, "Value", UsageText, Value);
                 if (IsUsageDpad(ValueCaps->UsagePage, Usage)) {
-                    printf(" (%S)", GetDpadDirectionString(ValueCaps, (LONG)Value));
+                    printf(" (%S)", GetDpadValueString(ValueCaps, (LONG)Value));
                 }
 
                 printf("\n");
@@ -1116,7 +1106,7 @@ GetNormalizedDpadValue(
 }
 
 PWSTR
-GetDpadDirectionString(
+GetDpadValueString(
     _In_ PHIDP_VALUE_CAPS ValueCaps,
     _In_ LONG Value
     )
@@ -1124,6 +1114,14 @@ GetDpadDirectionString(
     DPAD_DIRECTION Direction;
 
     Direction = GetNormalizedDpadValue(ValueCaps, Value);
+    return GetDpadDirectionString(Direction);
+}
+
+PWSTR
+GetDpadDirectionString(
+    _In_ DPAD_DIRECTION Direction
+    )
+{
     switch (Direction) {
         case DPAD_DIRECTION_UP:
             return L"N";
