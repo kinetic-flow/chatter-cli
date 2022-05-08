@@ -175,7 +175,7 @@ main(
         OPT_BOOLEAN('c', "chatter", &ArgChatter, "(MODE) Chatter test mode", NULL, 0, 0),
         OPT_BOOLEAN('l', "list", &ArgList, "(MODE) List all raw input devices", NULL, 0, 0),
         OPT_BOOLEAN('m', "monitor", &ArgMonitor, "(MODE) Monitor all HID input events from device(s)", NULL, 0, 0),
-        OPT_BOOLEAN('u', "cursor", &ArgCursor, "(Optional) Enable mouse movement tracing", NULL, 0, 0),
+        OPT_BOOLEAN('u', "cursor", &ArgCursor, "(Optional) Enable mouse movement and wheel tracing", NULL, 0, 0),
         OPT_BOOLEAN('v', "verbose", &ArgVerbose, "(Optional) Enable verbose prints", NULL, 0, 0),
         OPT_BOOLEAN('e', "vendor", &ArgVendorSpecific, "(Optional) Include vendor-specific devices", NULL, 0, 0),
         OPT_INTEGER('d', "duration", &ArgDuration, "(Optional) Set glitch duration in milliseconds, default 15ms", NULL, 0, 0),
