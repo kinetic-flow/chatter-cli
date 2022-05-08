@@ -77,6 +77,12 @@ CheckMouseEvent (
         return FALSE;
     }
 
+    if (!LogConfig.Mouse.Movement &&
+        (Mouse->usButtonFlags & RI_MOUSE_WHEEL ||
+        Mouse->usButtonFlags & RI_MOUSE_HWHEEL)) {
+        return FALSE;
+    }
+
     return TRUE;
 }
 
@@ -212,7 +218,7 @@ DumpMouseEvent (
 
     if (Mouse->usButtonFlags & RI_MOUSE_WHEEL ||
         Mouse->usButtonFlags & RI_MOUSE_HWHEEL) {
-        printf("%-*s: 0x%x\n", ME_ALIGN,
+        printf("%-*s: %d\n", ME_ALIGN,
             "usButtonData", (SHORT)Mouse->usButtonData);
     }
 
