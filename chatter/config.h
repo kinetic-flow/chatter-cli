@@ -5,6 +5,7 @@
 typedef struct _APP_CONFIG {
     BOOLEAN UseVendorSpecificHidDevices;
     UINT GlitchDurationInMs;
+    HANDLE HandleFilter;
 } APP_CONFIG, *PAPP_CONFIG;
 
 typedef struct _LOG_CONFIG {

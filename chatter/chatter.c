@@ -22,7 +22,8 @@ PrintLogTimeStamp(
 VOID
 RegisterDevices(
     _In_count_(DeviceCount) PRAWINPUTDEVICELIST DeviceList,
-    _In_ UINT DeviceCount
+    _In_ UINT DeviceCount,
+    _Out_ PUINT RegisteredDeviceCount
     )
 {
     UINT Count;
@@ -30,6 +31,14 @@ RegisterDevices(
     LPWSTR DeviceName = NULL;
     RID_DEVICE_INFO DeviceInfo;
     BOOLEAN Register;
+    
+    *RegisteredDeviceCount = 0;
+    if (AppConfig.HandleFilter != 0) {
+        printf(
+            "Looking for device with handle 0x%x (%d)\n",
+            (DWORD)AppConfig.HandleFilter,
+            (DWORD)AppConfig.HandleFilter);
+    }
 
     for (Count = 0; Count < DeviceCount; Count += 1) {
         Device = &DeviceList[Count];
@@ -57,8 +66,15 @@ RegisterDevices(
             }
         }
 
+        if (AppConfig.HandleFilter != 0 &&
+            AppConfig.HandleFilter != Device->hDevice) {
+
+            Register = FALSE;
+        }
+
         if (Register) {
             RegisterDevice(Device->hDevice, DeviceName, &DeviceInfo);
+            *RegisteredDeviceCount += 1;
         }
 
         free(DeviceName);
@@ -113,7 +129,7 @@ ProcessWmInput (
             printf("Unknown type %d", Data->header.dwType);
         }
 
-        printf(", Device ID: 0x%x]\n", (DWORD)Data->header.hDevice);
+        printf(", Handle: 0x%x]\n", (DWORD)Data->header.hDevice);
     }
 
     switch (Data->header.dwType) {
@@ -167,7 +183,9 @@ main(
     INT ArgVerbose = FALSE;
     INT ArgVendorSpecific = FALSE;
     INT ArgDuration = 15;
+    INT ArgDeviceId = 0;
     UINT DeviceCount;
+    UINT RegisteredDeviceCount;
     PRAWINPUTDEVICELIST DeviceList;
     struct argparse Argparse;
     struct argparse_option Options[] = {
@@ -177,8 +195,9 @@ main(
         OPT_BOOLEAN('m', "monitor", &ArgMonitor, "(MODE) Monitor all HID input events from device(s)", NULL, 0, 0),
         OPT_BOOLEAN('u', "cursor", &ArgCursor, "(Optional) Enable mouse movement and wheel tracing", NULL, 0, 0),
         OPT_BOOLEAN('v', "verbose", &ArgVerbose, "(Optional) Enable verbose prints", NULL, 0, 0),
-        OPT_BOOLEAN('e', "vendor", &ArgVendorSpecific, "(Optional) Include vendor-specific devices", NULL, 0, 0),
+        OPT_BOOLEAN('V', "vendor", &ArgVendorSpecific, "(Optional) Include vendor-specific devices", NULL, 0, 0),
         OPT_INTEGER('d', "duration", &ArgDuration, "(Optional) Set glitch duration in milliseconds, default 15ms", NULL, 0, 0),
+        OPT_INTEGER('H', "handle", &ArgDeviceId, "(Optional) Only display input from a single device handle (obtain handle using -l, must be decimal)", NULL, 0, 0),
         OPT_END(),
     };
     argparse_init(&Argparse, Options, usages, 0);
@@ -198,6 +217,7 @@ main(
 
     AppConfig.UseVendorSpecificHidDevices = ArgVendorSpecific;
     AppConfig.GlitchDurationInMs = ArgDuration;
+    AppConfig.HandleFilter = (HANDLE)ArgDeviceId;
 
     LogConfig.LogChatter = ArgChatter;
     LogConfig.LogEvents = ArgMonitor;
@@ -211,16 +231,20 @@ main(
 
     DeviceList = GetDevices(&DeviceCount);
     if (DeviceList != NULL) {
-        RegisterDevices(DeviceList, DeviceCount);
+        RegisterDevices(DeviceList, DeviceCount, &RegisteredDeviceCount);
         free(DeviceList);
     }
-    if (ArgList) {
-        DumpRegisteredDevices();
-    }
-    if (ArgChatter || ArgMonitor) {
-        printf("Monitoring raw input from %d device(s)\n", DeviceCount);
-        printf("Press CTRL+C to exit any time.\n\n");
-        CreateNewWindow();
+    if (RegisteredDeviceCount > 0) {
+        if (ArgList) {
+            DumpRegisteredDevices();
+        }
+        if (ArgChatter || ArgMonitor) {
+            printf("Monitoring raw input from %d device(s)\n", RegisteredDeviceCount);
+            printf("Press CTRL+C to exit any time.\n\n");
+            CreateNewWindow();
+        }
+    } else {
+        printf("No device found, exiting...\n");
     }
 
     DeinitializeRegisteredList();

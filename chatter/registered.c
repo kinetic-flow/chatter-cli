@@ -113,7 +113,7 @@ RegisterDevice(
     CopyMemory(&RegisteredDevice->DeviceInfo, DeviceInfo, sizeof(*DeviceInfo));
 
     switch (DeviceInfo->dwType) {
-        case RIM_TYPEKEYBOARD:\
+        case RIM_TYPEKEYBOARD:
             RegisteredDevice->KeyboardDeviceInfo =
                 RegisterKeyboardDevice(Handle, InstancePath);
             break;
@@ -137,9 +137,7 @@ VOID
 DumpRegisteredDevices(
     VOID
     )
-
 {
-
     UINT Count;
     LPWSTR DeviceName = NULL;
     PRID_DEVICE_INFO DeviceInfo;
@@ -161,7 +159,10 @@ DumpRegisteredDevices(
             printf("Unknown type %d", DeviceInfo->dwType);
         }
 
-        printf(" (ID: %x)", (DWORD)Device->Handle);
+        printf(
+            " (Handle: 0x%x / %d)",
+            (DWORD)Device->Handle,
+            (DWORD)Device->Handle);
         printf("]\n");
 
         // dump instance path
