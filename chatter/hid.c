@@ -917,7 +917,7 @@ ProcessHidEvent(
                 UsageCount += 1) {
 
                 Usage = ButtonCapState->UsageMin + UsageCount;
-                Identifier = (Count << 16) || (Usage);
+                Identifier = (Count << 16) | (Usage);
 
                 // OFF -> ON rising edge, start the timer
                 if (!ButtonCapState->PreviousState[UsageCount] &&
